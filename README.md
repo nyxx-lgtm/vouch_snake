@@ -1,116 +1,121 @@
-# Snake Game 🐍
+# Snake Game Automation Testing
 
-A classic Snake game built with Node.js and HTML5 Canvas, featuring modern web technologies and a clean, responsive design.
+## 📖 Overview
+This repository contains an **end-to-end automated test suite** for the web-based Snake game using **Playwright**, **BDD (Gherkin)**, and the **Page Object Model (POM)**.  
 
-## Features
+The goal of this assessment is to demonstrate:
+- How I identify and prioritize test scenarios  
+- My approach to building maintainable and scalable test automation  
+- Creativity in covering edge cases and game-specific behaviors  
 
-- **Classic Gameplay**: Grid-based movement with smooth controls
-- **Responsive Controls**: Use arrow keys or WASD to control the snake
-- **Progressive Difficulty**: Speed increases every 50 points
-- **Score System**: Track your current score and persistent high score
-- **Pause/Resume**: Space bar or button to pause anytime
-- **Visual Feedback**: Snake with directional eyes that follow movement
-- **Modern UI**: Gradient backgrounds, smooth animations, and clean design
-- **Responsive Design**: Works on both desktop and mobile screens
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone git@github.com:josephvouch/vouch_snake.git
-cd vouch_snake
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the server:
-```bash
-npm start
-```
-
-4. Open your browser and navigate to:
-```
-http://localhost:3456
-```
-
-## How to Play
-
-- **Start**: Click the "Start Game" button
-- **Move**: Use arrow keys (↑ ↓ ← →) or WASD keys
-- **Pause**: Press Space bar or click "Pause" button
-- **Objective**: Eat the red food to grow and increase your score
-- **Avoid**: Don't hit the walls or your own tail!
-
-## Game Controls
-
-| Key | Action |
-|-----|--------|
-| ↑ / W | Move Up |
-| ↓ / S | Move Down |
-| ← / A | Move Left |
-| → / D | Move Right |
-| Space | Pause/Resume |
-
-## Technical Stack
-
-- **Backend**: Node.js with Express.js
-- **Frontend**: Vanilla JavaScript with HTML5 Canvas
-- **Styling**: Pure CSS with modern gradients and animations
-- **Storage**: LocalStorage for high score persistence
-
-## Project Structure
-
-```
-snake/
-├── server.js           # Express server
-├── package.json        # Node dependencies
-├── public/
-│   ├── index.html     # Game HTML structure
-│   ├── styles.css     # Game styling
-│   └── game.js        # Game logic and mechanics
-└── README.md          # This file
-```
-
-## Game Mechanics
-
-- **Snake Movement**: Continuous movement in the current direction
-- **Growth System**: Snake grows by one segment when eating food
-- **Collision Detection**: Game ends on wall or self-collision
-- **Food Spawning**: Random placement on empty grid cells
-- **Speed Scaling**: Increases progressively with score
-- **180° Turn Prevention**: Cannot immediately reverse direction
-
-## Development
-
-To modify the game:
-
-1. **Game Logic**: Edit `public/game.js`
-2. **Styling**: Modify `public/styles.css`
-3. **Server**: Update `server.js` for backend changes
-
-## Browser Compatibility
-
-- Chrome (recommended)
-- Firefox
-- Safari
-- Edge
-- Any modern browser with Canvas support
-
-## License
-
-MIT License - Feel free to use and modify as needed.
-
-## Contributing
-
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
-
-## Author
-
-Created with Node.js and vanilla JavaScript
+> ⏱️ Completed within ~3 hours using a mix of **manual design** and **AI-assisted coding**.
 
 ---
 
-Enjoy the game! 🎮
+## ▶️ How to Run the Tests
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/nyxx-lgtm/vouch_snake.git
+cd vouch_snake
+```
+
+### 2. Install dependencies
+```bash
+npm install
+npx playwright install
+```
+
+### 3. Run all tests
+```bash
+npm run test
+```
+
+### 4. Run with UI (debug mode)
+```bash
+npm run test:ui
+```
+
+### 5. Run tagged subsets
+```bash
+npx playwright test --grep @smoke
+npx playwright test --grep @gameover
+```
+
+---
+
+## 🧪 Testing Strategy
+
+### Approach
+- **Page Object Model (POM):** Encapsulates locators and game actions (`HomePage`, `GamePage`).  
+- **BDD with Gherkin:** Human-readable scenarios (`.feature` files) describing gameplay, persistence, and edge cases.  
+- **Deterministic Hooks:** Added a small `__snakeTestApi__` in `public/game.js` to reliably test game logic (score, speed, collisions) without relying on randomness.  
+- **Tags:** Used scenario tags (`@smoke`, `@score`, `@gameover`, `@persist`) to organize test subsets.
+
+### Core Scenarios (10+)
+1. Landing page loads and canvas is visible  
+2. Game starts at score 0  
+3. Pause and resume functionality  
+4. Eating food increases score by 10  
+5. Speed increases after 50 points  
+6. High score persists after reload  
+7. Game ends when hitting a wall  
+8. 180° turn prevention works  
+9. Layout still works at smaller viewport  
+10. Resume after pause continues same session  
+11. Multiple reloads keep high score  
+
+---
+
+## 🔍 Interesting Findings
+
+- **Randomness:** Food spawns randomly, which makes testing non-deterministic. The hook solved this by letting tests place food ahead of the snake.  
+- **Speed thresholds:** Game speed is tied to score milestones (50, 100 points). Verifying this required accessing internal state (`gameSpeed`).  
+- **Persistence:** High score storage works via `localStorage` (`snakeHighScore`). This was easy to assert across sessions.  
+- **UI & Logic Coverage:** Balanced between UI button clicks (Start, Pause, Reset) and direct logic validation via hooks.  
+
+---
+
+## ⚠️ Challenges
+
+- **Canvas rendering:** Pure pixel-level checks are brittle, so I relied on state hooks instead.  
+- **180° turns:** Verified via direction state rather than trying to visually check the snake.  
+- **Timeboxing:** With more time, I’d add performance tests (FPS under load), mobile layout validations, and negative tests (e.g., invalid keypresses).  
+
+---
+
+## ➕ If I Had More Time
+
+- **Cross-browser matrix**: Already set up in Playwright config (Chromium/Firefox/WebKit) but not deeply explored.  
+- **Performance tests**: Measure frame updates and latency.  
+- **Accessibility checks**: Ensure buttons have ARIA roles, focus works with keyboard-only play.  
+- **Visual regression**: Screenshot testing for canvas states.  
+
+---
+
+## 📂 Project Structure
+```
+tests/
+  features/     # Gherkin scenarios
+  steps/        # Step definitions
+  pages/        # POM classes (HomePage, GamePage)
+  fixtures/     # Shared Playwright fixtures
+public/
+  game.js       # Game logic + test hook (__snakeTestApi__)
+playwright.config.ts
+```
+
+---
+
+## ✅ Evaluation Fit
+
+This project demonstrates:
+- **Testing mindset:** Coverage spans UI flows, game rules, persistence, and edge cases.  
+- **Code quality:** Modular structure with fixtures + POM.  
+- **Innovation:** Deterministic hook for reliable testing of random game logic.  
+- **Execution:** Working Playwright-BDD setup.  
+- **Documentation:** This README explains approach, usage, findings, and improvements clearly.  
+
+---
+
+✨ *Built with Playwright, BDD, POM, and AI-assisted tooling.*  
