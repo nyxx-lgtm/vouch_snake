@@ -347,7 +347,129 @@ class SnakeGame {
     }
 }
 
+// --- Test hook (safe in prod; no-op if window is undefined) ---
+if (typeof window !== 'undefined') {
+  // Utilities for the hook only
+  const _dirFromString = (s) => {
+    const m = String(s || '').toLowerCase();
+    if (m === 'arrowup' || m === 'up' || m === 'w')   return { x: 0, y: -1 };
+    if (m === 'arrowdown' || m === 'down' || m === 's') return { x: 0, y: 1 };
+    if (m === 'arrowleft' || m === 'left' || m === 'a') return { x: -1, y: 0 };
+    if (m === 'arrowright' || m === 'right' || m === 'd') return { x: 1, y: 0 };
+    return null;
+  };
+
+  const _isOnSnake = (game, x, y) => game.snake.some(seg => seg.x === x && seg.y === y);
+
+  const _placeFoodAhead = (game) => {
+    const head = game.snake[0];
+    const d = game.direction; // {x,y}
+    let fx = head.x + d.x;
+    let fy = head.y + d.y;
+
+    // Keep food inside bounds
+    fx = Math.max(0, Math.min(game.tileCount - 1, fx));
+    fy = Math.max(0, Math.min(game.tileCount - 1, fy));
+
+    // If that spot is on snake, pick the first free cell we find
+    if (_isOnSnake(game, fx, fy)) {
+      outer: for (let y = 0; y < game.tileCount; y++) {
+        for (let x = 0; x < game.tileCount; x++) {
+          if (!_isOnSnake(game, x, y)) { fx = x; fy = y; break outer; }
+        }
+      }
+    }
+
+    game.food = { x: fx, y: fy };
+    game.draw();
+  };
+
+  const _forceWallHit = (game) => {
+    // Move head calculation outside bounds on next update
+    // E.g., push nextDirection towards a wall and tick enough times.
+    const head = game.snake[0];
+    // Choose a direction that will hit a wall quickly
+    if (head.x < game.tileCount - 1) {
+      game.nextDirection = { x: 1, y: 0 };
+      const steps = game.tileCount - head.x; // to go out of bounds
+      for (let i = 0; i < steps; i++) { game.update(); }
+    } else {
+      game.nextDirection = { x: -1, y: 0 };
+      for (let i = 0; i < head.x + 1; i++) { game.update(); }
+    }
+    game.draw();
+  };
+
+  // Expose a deterministic API for tests
+  Object.defineProperty(window, '__snakeTestApi__', {
+    configurable: true,
+    writable: true,
+    value: {
+      /** @returns {SnakeGame|undefined} */
+      get instance() { return window.game; },
+
+      // Read state
+      getScore:   () => window.game?.score ?? 0,
+      getHighScore: () => Number(localStorage.getItem('snakeHighScore') || 0),
+      getSpeedMs: () => window.game?.gameSpeed ?? 0,
+      getDirection:     () => ({ ...(window.game?.direction ?? { x: 0, y: 0 }) }),
+      getNextDirection: () => ({ ...(window.game?.nextDirection ?? { x: 0, y: 0 }) }),
+      getHead:    () => ({ ...(window.game?.snake?.[0] ?? { x: 0, y: 0 }) }),
+      getFood:    () => ({ ...(window.game?.food ?? { x: 0, y: 0 }) }),
+
+      // Control game loop / session
+      start:  () => window.game?.startGame(),
+      pause:  () => window.game && window.game.gameRunning && !window.game.gamePaused && window.game.togglePause(),
+      resume: () => window.game && window.game.gameRunning && window.game.gamePaused && window.game.togglePause(),
+      reset:  () => window.game?.resetGame(),
+
+      // Deterministic ticking (bypass setTimeout)
+      tick:   (n = 1) => {
+        const game = window.game;
+        if (!game) return;
+        for (let i = 0; i < n; i++) game.update();
+        game.draw();
+      },
+
+      // Inputs / state mutation
+      setDirection: (dirStr) => {
+        const game = window.game;
+        if (!game) return;
+        const d = _dirFromString(dirStr);
+        if (!d) return;
+        // Respect your 180° prevention (same as keyboard: only change axis)
+        if (game.direction.x === 0 && d.x !== 0) game.nextDirection = d;
+        if (game.direction.y === 0 && d.y !== 0) game.nextDirection = d;
+      },
+
+      setFood: (x, y) => {
+        const game = window.game;
+        if (!game) return;
+        const fx = Math.max(0, Math.min(game.tileCount - 1, Number(x)));
+        const fy = Math.max(0, Math.min(game.tileCount - 1, Number(y)));
+        game.food = { x: fx, y: fy };
+        game.draw();
+      },
+
+      placeFoodAhead: () => {
+        const game = window.game;
+        if (game) _placeFoodAhead(game);
+      },
+
+      forceWallHit: () => {
+        const game = window.game;
+        if (game) _forceWallHit(game);
+      },
+    }
+  });
+}
+
+
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const game = new SnakeGame();
+  const game = new SnakeGame();
+  // expose to the window so the test hook can reach it
+  if (typeof window !== 'undefined') {
+    window.game = game;
+  }
 });
